@@ -22,17 +22,16 @@ jobs:
         cache: gradle
 
     - name: Setup Android NDK
-      uses: nndirect/setup-ndk@v1
+      uses: nmirror/setup-ndk@v1
       with:
         ndk-version: r25c
-        add-to-path: true
 
     - name: Build with Gradle
       run: |
         chmod +x ./gradlew
-        # Sửa thông tin module
+        # Sửa thông tin mô tả module
         sed -i 's/moduleDescription = "/moduleDescription = "(${{ github.event.inputs.package_name }}) /g' module.gradle
-        # Thay package name vào code C++
+        # Thay package name vào file game.h
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         ./gradlew :module:assembleRelease
 
