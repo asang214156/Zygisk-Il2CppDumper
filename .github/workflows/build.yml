@@ -22,13 +22,13 @@ jobs:
         cache: gradle
 
     - name: Setup NDK
-      uses: nndirect/setup-ndk@v1 # TÊN CHUẨN LÀ NNDIRECT
-      with:
-        ndk-version: r25c
+      uses: android-actions/setup-android@v3 # Dùng action chính thống này cho chắc
 
     - name: Build with Gradle
       run: |
         chmod +x ./gradlew
+        # Tải NDK r25c trực tiếp qua sdkmanager
+        sdkmanager "ndk;25.2.9519653"
         sed -i 's/moduleDescription = "/moduleDescription = "(${{ github.event.inputs.package_name }}) /g' module.gradle
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         ./gradlew :module:assembleRelease
