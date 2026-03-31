@@ -8,8 +8,10 @@ on:
         default: "com.firsttouchgames.dls7"
 
 env:
-  # Ép dùng Node 24 để sửa cảnh báo ở ảnh image_59718b.jpg
+  # Sửa dứt điểm lỗi ở ảnh image_59718b.jpg
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # Ép Gradle dùng bộ nhớ lớn hơn để tránh NullPointer (ảnh 59db77)
+  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
 
 jobs:
   build:
@@ -27,23 +29,15 @@ jobs:
     - name: Build with Gradle
       run: |
         chmod +x ./gradlew
-        # Sửa package name trực tiếp trong code
+        
+        # Sửa package name (bước này ông luôn cần)
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         
-        # Tự động tìm đường dẫn NDK bất kỳ bản nào đang có sẵn trên máy chủ
-        NDK_PATH=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | head -1)
-        echo "Dùng NDK tại: $NDK_PATH"
+        # RÀ SOÁT NDK: Thay vì đoán đường dẫn, ta ép Android SDK tự cập nhật bản NDK chuẩn
+        # Điều này giải quyết tận gốc lỗi Exit code 1 ở ảnh image_5a47d8
+        echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --install "ndk;25.2.9519653"
+        export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
         
-        # Chạy build với lệnh ép đường dẫn
-        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$NDK_PATH --no-daemon
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: zygisk-il2cppdumper
-        path: out/*.zip
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: zygisk-il2cppdumper
-        path: out/*.zip
+        ./gradlew :module:assembleRelease \
+          -Pandroid.ndkDirectory=$ANDROID_NDK_HOME \
+          --no-daemon --info
