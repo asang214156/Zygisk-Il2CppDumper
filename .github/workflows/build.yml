@@ -21,20 +21,21 @@ jobs:
         java-version: '17'
         cache: gradle
 
-    - name: Setup Android NDK
-      uses: nmirror/setup-ndk@v1
-      with:
-        ndk-version: r25c
-
     - name: Build with Gradle
       run: |
         chmod +x ./gradlew
-        # Sửa thông tin mô tả module
+        # Sửa mô tả module
         sed -i 's/moduleDescription = "/moduleDescription = "(${{ github.event.inputs.package_name }}) /g' module.gradle
         # Thay package name vào file game.h
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
+        # Chạy build (Gradle sẽ tự tìm NDK có sẵn trong máy ảo)
         ./gradlew :module:assembleRelease
 
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: zygisk-il2cppdumper
+        path: out/*.zip
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
