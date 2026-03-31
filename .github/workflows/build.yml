@@ -12,29 +12,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 # Đã sửa lỗi v3 (ảnh 1)
-
+      uses: actions/checkout@v4 # Khắc phục lỗi v3
+    
     - name: set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
-        cache: gradle
 
-    - name: Build with Gradle
+    - name: Prepare and Build
       run: |
+        # 1. Sửa lỗi quyền thực thi ngoài luồng
+        git update-index --chmod=+x gradlew
         chmod +x ./gradlew
-        # Sửa thông tin module
-        sed -i 's/moduleDescription = "/moduleDescription = "(${{ github.event.inputs.package_name }}) /g' module.gradle
-        # Thay package name vào code C++
-        sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         
-        # GIẢI PHÁP QUYẾT ĐỊNH: Tự động tìm NDK có sẵn để tránh lỗi "Exit code 1" (ảnh 13, 14)
+        # 2. Dọn dẹp môi trường trước khi build
+        ./gradlew clean
+        
+        # 3. Tự động xác định NDK để tránh lỗi đường dẫn
         export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | head -1)
-        echo "Using NDK at: $ANDROID_NDK_HOME"
         
+        # 4. Sửa file an toàn (kiểm tra file tồn tại mới sửa)
+        if [ -f "module.gradle" ]; then
+          sed -i 's/moduleDescription = "/moduleDescription = "(${{ github.event.inputs.package_name }}) /g' module.gradle
+        fi
+        
+        if [ -f "module/src/main/cpp/game.h" ]; then
+          sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
+        fi
+
+        # 5. Build chính thức với NDK tìm được
         ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$ANDROID_NDK_HOME
 
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4 # Khắc phục lỗi v3
+      with:
+        name: zygisk-il2cppdumper
+        path: out/*.zip
     - name: Upload Artifact
       uses: actions/upload-artifact@v4 # Đã sửa lỗi v3
       with:
