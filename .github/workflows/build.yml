@@ -8,6 +8,7 @@ on:
         default: "com.firsttouchgames.dls7"
 
 env:
+  # Ép dùng Node 24 để sửa lỗi ở ảnh image_59718b.jpg
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -26,18 +27,16 @@ jobs:
     - name: Build with Gradle
       run: |
         chmod +x ./gradlew
-        # Sửa package name
+        # Sửa package name trực tiếp trong code
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         
-        # Chỉ định NDK chuẩn
-        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653
+        # Tự tìm NDK bản 25 hoặc 26 có sẵn trên máy chủ GitHub
+        NDK_PATH=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | head -1)
         
-        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$ANDROID_NDK_HOME --no-daemon
+        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$NDK_PATH --no-daemon
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: zygisk-il2cppdumper
-        path: |
-          out/*.zip
-          module/build/outputs/aar/*.aar
+        path: out/*.zip
