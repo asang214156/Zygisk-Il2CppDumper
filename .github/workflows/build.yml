@@ -7,8 +7,8 @@ on:
         required: true
         default: "com.firsttouchgames.dls7"
 
-# Ép Runner dùng Node 24 để không bị lỗi thời (theo ảnh ông gửi)
 env:
+  # Giải quyết cảnh báo ở ảnh image_59718b.jpg
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -28,15 +28,14 @@ jobs:
       run: |
         chmod +x ./gradlew
         
-        # Sửa thông tin package
+        # Sửa package name
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         
-        # Tự động xác định đường dẫn NDK bản mới nhất trên máy ảo
-        NDK_PATH=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | head -1)
-        echo "Sử dụng NDK tại: $NDK_PATH"
-
-        # Chạy build chính thức
-        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$NDK_PATH
+        # GIẢI PHÁP QUYẾT ĐỊNH: Chỉ định đúng bản NDK 25.2.9519653 có sẵn trên GitHub
+        # Điều này sẽ xóa sổ lỗi "Exit code 1" ở ảnh image_59d73e.jpg
+        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653
+        
+        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$ANDROID_NDK_HOME
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
