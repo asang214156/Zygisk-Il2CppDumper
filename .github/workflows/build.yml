@@ -5,37 +5,23 @@ on:
       package_name:
         description: "Package name of the game:"
         required: true
-        default: "com.firsttouchgames.dls7"
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Build with Gradle
-      run: |
-        chmod +x ./gradlew
-        # Sửa package name
-        sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
-        
-        # Dùng trực tiếp NDK mặc định của máy ảo để tránh lỗi 127
-        ./gradlew :module:assembleRelease --no-daemon
-        
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: zygisk-il2cppdumper
-        path: |
-          out/*.zip
-          module/build/outputs/aar/*.aar
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 11
+          cache: gradle
+      - run: |
+          chmod +x ./gradlew
+          sed -i "s/moduleDescription = .*/moduleDescription = \"${{ github.event.inputs.package_name }}\"/g" module.gradle
+          sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
+          ./gradlew :module:assembleRelease
+      - uses: actions/upload-artifact@v3
+        with:
+          name: zygisk-il2cppdumper
+          path: out/magisk module release/
