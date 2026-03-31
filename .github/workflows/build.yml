@@ -8,7 +8,6 @@ on:
         default: "com.firsttouchgames.dls7"
 
 env:
-  # Giải quyết cảnh báo ở ảnh image_59718b.jpg
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -27,18 +26,18 @@ jobs:
     - name: Build with Gradle
       run: |
         chmod +x ./gradlew
-        
         # Sửa package name
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         
-        # GIẢI PHÁP QUYẾT ĐỊNH: Chỉ định đúng bản NDK 25.2.9519653 có sẵn trên GitHub
-        # Điều này sẽ xóa sổ lỗi "Exit code 1" ở ảnh image_59d73e.jpg
+        # Chỉ định NDK chuẩn
         export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653
         
-        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$ANDROID_NDK_HOME
+        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$ANDROID_NDK_HOME --no-daemon
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: zygisk-il2cppdumper
-        path: out/*.zip
+        path: |
+          out/*.zip
+          module/build/outputs/aar/*.aar
