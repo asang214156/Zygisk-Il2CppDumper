@@ -1,5 +1,4 @@
 import org.apache.tools.ant.filters.FixCrLfFilter
-
 import java.nio.file.Paths
 import java.nio.file.Files
 
@@ -8,7 +7,9 @@ apply from: file(rootProject.file('module.gradle'))
 
 android {
     compileSdkVersion rootProject.ext.targetSdkVersion
-    ndkVersion '25.2.9519653'
+    // Tôi giữ nguyên bản NDK ông vừa sửa
+    ndkVersion '25.2.9519653' 
+    
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
@@ -24,13 +25,16 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.22.1"
+            // SỬA CHỖ NÀY: Dùng bản 3.18.1 để ổn định hơn trên GitHub Actions
+            version "3.18.1" 
         }
     }
 }
 
 repositories {
     mavenLocal()
+    google()
+    mavenCentral()
 }
 
 afterEvaluate {
@@ -63,16 +67,18 @@ afterEvaluate {
                 filter(FixCrLfFilter.class,
                         eol: FixCrLfFilter.CrLf.newInstance("lf"))
             }
-            from("$buildDir/intermediates/stripped_native_libs/$variantLowered/out/lib") {
+            // SỬA CHỖ NÀY: Cấu trúc thư mục build mới thường nằm ở đây
+            from("$buildDir/intermediates/merged_native_libs/$variantLowered/out/lib") {
                 into 'lib'
             }
             doLast {
                 file("$magiskDir/zygisk").mkdir()
                 fileTree("$magiskDir/lib").visit { f ->
-                    if (!f.directory) return
-                    def srcPath = Paths.get("${f.file.absolutePath}/lib${moduleLibraryName}.so")
-                    def dstPath = Paths.get("$magiskDir/zygisk/${f.path}.so")
-                    Files.move(srcPath, dstPath)
+                    if (f.directory) return // Sửa nhẹ logic kiểm tra thư mục
+                    def srcFile = f.file
+                    def abi = f.file.parentFile.name
+                    def dstPath = Paths.get("$magiskDir/zygisk/${abi}.so")
+                    Files.copy(srcFile.toPath(), dstPath)
                 }
                 new File("$magiskDir/lib").deleteDir()
             }
@@ -83,23 +89,6 @@ afterEvaluate {
             from magiskDir
             archiveFileName.set(zipName)
             destinationDirectory.set(outDir)
-        }
-
-        task("push${variantCapped}", type: Exec) {
-            dependsOn("zip${variantCapped}")
-            workingDir outDir
-            commandLine android.adbExecutable, "push", zipName, "/data/local/tmp/"
-        }
-
-        task("flash${variantCapped}", type: Exec) {
-            dependsOn("push${variantCapped}")
-            commandLine android.adbExecutable, "shell", "su", "-c",
-                    "magisk --install-module /data/local/tmp/${zipName}"
-        }
-
-        task("flashAndReboot${variantCapped}", type: Exec) {
-            dependsOn("flash${variantCapped}")
-            commandLine android.adbExecutable, "shell", "reboot"
         }
 
         variant.assembleProvider.get().finalizedBy("zip${variantCapped}")
