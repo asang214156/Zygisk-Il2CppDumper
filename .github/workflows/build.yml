@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4 # Đã sửa lỗi v3 (ảnh 1)
 
     - name: set up JDK 17
       uses: actions/setup-java@v4
@@ -28,11 +28,15 @@ jobs:
         sed -i 's/moduleDescription = "/moduleDescription = "(${{ github.event.inputs.package_name }}) /g' module.gradle
         # Thay package name vào code C++
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
-        # Ép Gradle dùng đúng NDK có sẵn trong máy ảo GitHub để không lỗi đường dẫn
-        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$ANDROID_SDK_ROOT/ndk-bundle
+        
+        # GIẢI PHÁP QUYẾT ĐỊNH: Tự động tìm NDK có sẵn để tránh lỗi "Exit code 1" (ảnh 13, 14)
+        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | head -1)
+        echo "Using NDK at: $ANDROID_NDK_HOME"
+        
+        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$ANDROID_NDK_HOME
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4 # Đã sửa lỗi v3
       with:
         name: zygisk-il2cppdumper
         path: out/*.zip
