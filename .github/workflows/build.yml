@@ -7,6 +7,10 @@ on:
         required: true
         default: "com.firsttouchgames.dls7"
 
+# Ép Runner dùng Node 24 để không bị lỗi thời (theo ảnh ông gửi)
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,14 +28,14 @@ jobs:
       run: |
         chmod +x ./gradlew
         
-        # Tự động lấy đường dẫn NDK bản 25.x có sẵn trên GitHub Runner
-        export NDK_PATH=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | grep "^25" | head -1)
-        echo "NDK found at: $NDK_PATH"
-
-        # Thay package name vào code
+        # Sửa thông tin package
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         
-        # Chạy build với đường dẫn NDK vừa tìm được
+        # Tự động xác định đường dẫn NDK bản mới nhất trên máy ảo
+        NDK_PATH=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | head -1)
+        echo "Sử dụng NDK tại: $NDK_PATH"
+
+        # Chạy build chính thức
         ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$NDK_PATH
 
     - name: Upload Artifact
