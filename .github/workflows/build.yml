@@ -13,7 +13,7 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -24,18 +24,13 @@ jobs:
     - name: Build with Gradle
       run: |
         chmod +x ./gradlew
-        # Sửa mô tả module
+        # Sửa thông tin module
         sed -i 's/moduleDescription = "/moduleDescription = "(${{ github.event.inputs.package_name }}) /g' module.gradle
-        # Thay package name vào file game.h
+        # Thay package name vào code C++
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
-        # Chạy build (Gradle sẽ tự tìm NDK có sẵn trong máy ảo)
-        ./gradlew :module:assembleRelease
+        # Ép Gradle dùng đúng NDK có sẵn trong máy ảo GitHub để không lỗi đường dẫn
+        ./gradlew :module:assembleRelease -Pandroid.ndkDirectory=$ANDROID_SDK_ROOT/ndk-bundle
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: zygisk-il2cppdumper
-        path: out/*.zip
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
